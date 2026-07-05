@@ -28,6 +28,7 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET is not set");
 
+  // ①署名が正しいか（改ざんされていないか） ②exp（失効時刻）を過ぎていないか、の2つをチェック
   const payload = await verify(token, secret, "HS256");
   return payload as unknown as AccessTokenPayload;
 }
