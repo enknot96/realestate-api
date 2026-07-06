@@ -4,24 +4,9 @@ import { setCookie, getCookie, deleteCookie } from "hono/cookie";
 import { registerSchema, loginSchema } from "../schemas/auth.js";
 import * as authService from "../services/authService.js";
 import { AppError } from "../lib/errors.js";
+import { validationHook } from "../lib/validationHook.js";
 
 const REFRESH_TOKEN_COOKIE = "refresh_token";
-
-type ValidationIssue = { code: string; path: PropertyKey[]; message: string };
-
-const validationHook = (result: {
-  success: boolean;
-  error?: { issues: ValidationIssue[] };
-}) => {
-  if (!result.success) {
-    const details = result.error?.issues.map(({ code, path, message }) => ({
-      code,
-      path,
-      message,
-    }));
-    throw new AppError(422, "VALIDATION_ERROR", "リクエストの形式が不正です", details);
-  }
-};
 
 export const authRoutes = new Hono();
 
