@@ -3,7 +3,7 @@ import { verifyAccessToken, type AccessTokenPayload } from "../lib/jwt.js";
 import { AppError } from "../lib/errors.js";
 
 export type AuthVariables = {
-  agent: AccessTokenPayload;
+  agent?: AccessTokenPayload;
 };
 
 export const authMiddleware: MiddlewareHandler<{
@@ -31,6 +31,24 @@ export const authMiddleware: MiddlewareHandler<{
     c.set("agent", payload);
   } catch {
     throw new AppError(401, "UNAUTHORIZED", "トークンが無効です");
+  }
+
+  await next();
+};
+
+export const optionalAuthMiddleware: MiddlewareHandler<{
+  Variables: AuthVariables;
+}> = async (c, next) => {
+  const authHeader = c.req.header("Authorization");
+
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice("Bearer ".length);
+    try {
+      const payload = await verifyAccessToken(token);
+      c.set("agent", payload);
+    } catch {
+      // 無効なトークンは無視し、未認証として扱う
+    }
   }
 
   await next();
