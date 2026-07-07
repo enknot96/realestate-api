@@ -1,7 +1,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { optionalAuthMiddleware, type AuthVariables } from "../middlewares/auth.js";
-import { propertyListQuerySchema } from "../schemas/property.js";
+import { authMiddleware, optionalAuthMiddleware, type AuthVariables } from "../middlewares/auth.js";
+import {
+  propertyCreateSchema,
+  propertyListQuerySchema,
+  propertyUpdateSchema,
+} from "../schemas/property.js";
 import * as propertyService from "../services/propertyService.js";
 import { validationHook } from "../lib/validationHook.js";
 import { AppError } from "../lib/errors.js";
@@ -35,5 +39,69 @@ propertyRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
   const requester = agent ? { agentId: agent.agentId, role: agent.role } : null;
 
   const property = await propertyService.getById(id, requester);
+  return c.json(property);
+});
+
+propertyRoutes.post(
+  "/",
+  authMiddleware,
+  zValidator("json", propertyCreateSchema, validationHook),
+  async (c) => {
+    const body = c.req.valid("json");
+    const agent = c.get("agent");
+    if (!agent) {
+      throw new AppError(401, "UNAUTHORIZED", "認証が必要です");
+    }
+
+    const property = await propertyService.create(body, {
+      agentId: agent.agentId,
+      role: agent.role,
+    });
+
+    return c.json(property, 201);
+  },
+);
+
+propertyRoutes.patch(
+  "/:id",
+  authMiddleware,
+  zValidator("json", propertyUpdateSchema, validationHook),
+  async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id)) {
+      throw new AppError(404, "NOT_FOUND", "物件が見つかりません");
+    }
+
+    const body = c.req.valid("json");
+    const agent = c.get("agent");
+    if (!agent) {
+      throw new AppError(401, "UNAUTHORIZED", "認証が必要です");
+    }
+
+    const property = await propertyService.update(id, body, {
+      agentId: agent.agentId,
+      role: agent.role,
+    });
+
+    return c.json(property);
+  },
+);
+
+propertyRoutes.delete("/:id", authMiddleware, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) {
+    throw new AppError(404, "NOT_FOUND", "物件が見つかりません");
+  }
+
+  const agent = c.get("agent");
+  if (!agent) {
+    throw new AppError(401, "UNAUTHORIZED", "認証が必要です");
+  }
+
+  const property = await propertyService.remove(id, {
+    agentId: agent.agentId,
+    role: agent.role,
+  });
+
   return c.json(property);
 });

@@ -5,6 +5,10 @@ import { properties } from "../db/schema.js";
 type PropertyStatus = "draft" | "published" | "contracted" | "closed";
 type PropertyType = "rent" | "sale";
 
+// 普通のフィールド更新（タイトル修正など、副作用なし）→ dbをそのまま渡して呼ぶ
+// contracted/closedへの遷移（内見一括キャンセルとセットで実行する必要がある）→ db.transaction()の中でtxを渡して呼ぶ
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export type Visibility =
   | { kind: "public" }
   | { kind: "admin" }
@@ -18,6 +22,27 @@ export type PropertyFilter = {
   limit: number;
   offset: number;
   visibility: Visibility;
+};
+
+export type PropertyCreateData = {
+  type: PropertyType;
+  title: string;
+  description?: string;
+  price: number;
+  layout?: string;
+  area?: number;
+  address: string;
+};
+
+export type PropertyUpdateData = {
+  type?: PropertyType;
+  title?: string;
+  description?: string;
+  price?: number;
+  layout?: string;
+  area?: number;
+  address?: string;
+  status?: PropertyStatus;
 };
 
 function buildConditions(filter: PropertyFilter) {
@@ -62,5 +87,37 @@ export async function findMany(filter: PropertyFilter) {
 
 export async function findById(id: number) {
   const [property] = await db.select().from(properties).where(eq(properties.id, id));
+  return property;
+}
+
+export async function create(executor: Executor, agentId: number, data: PropertyCreateData) {
+  const [property] = await executor
+    .insert(properties)
+    .values({
+      agentId,
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      layout: data.layout,
+      area: data.area !== undefined ? String(data.area) : undefined,
+      address: data.address,
+    })
+    .returning();
+
+  return property;
+}
+
+export async function update(executor: Executor, id: number, data: PropertyUpdateData) {
+  const [property] = await executor
+    .update(properties)
+    .set({
+      ...data,
+      area: data.area !== undefined ? String(data.area) : undefined,
+      updatedAt: new Date(),
+    })
+    .where(eq(properties.id, id))
+    .returning();
+
   return property;
 }
