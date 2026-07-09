@@ -7,11 +7,11 @@ import type {
   PropertyListQuery,
   PropertyUpdateInput,
 } from "../schemas/property.js";
+import { assertOwnership, type AuthenticatedRequester } from "../lib/authorization.js";
 
 type PropertyStatus = "draft" | "published" | "contracted" | "closed";
 
 type Requester = { agentId: number; role: "agent" | "admin" } | null;
-type AuthenticatedRequester = { agentId: number; role: "agent" | "admin" };
 
 // 記載のない遷移（逆行含む）は許可しない
 const ALLOWED_TRANSITIONS: Record<PropertyStatus, PropertyStatus[]> = {
@@ -25,13 +25,6 @@ function resolveVisibility(requester: Requester): propertyRepository.Visibility 
   if (!requester) return { kind: "public" };
   if (requester.role === "admin") return { kind: "admin" };
   return { kind: "agent", agentId: requester.agentId };
-}
-
-function assertOwnership(property: { agentId: number }, requester: AuthenticatedRequester) {
-  if (requester.role === "admin") return;
-  if (property.agentId !== requester.agentId) {
-    throw new AppError(403, "FORBIDDEN", "この操作を行う権限がありません");
-  }
 }
 
 function assertValidTransition(from: PropertyStatus, to: PropertyStatus) {
