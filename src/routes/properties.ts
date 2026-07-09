@@ -9,6 +9,9 @@ import {
 import * as propertyService from "../services/propertyService.js";
 import { validationHook } from "../lib/validationHook.js";
 import { AppError } from "../lib/errors.js";
+import { rateLimitMiddleware } from "../middlewares/rateLimit.js";
+import { inquiryCreateSchema, inquiryListQuerySchema } from "../schemas/inquiry.js";
+import * as inquiryService from "../services/inquiryService.js";
 
 export const propertyRoutes = new Hono<{ Variables: AuthVariables }>();
 
@@ -105,3 +108,45 @@ propertyRoutes.delete("/:id", authMiddleware, async (c) => {
 
   return c.json(property);
 });
+
+propertyRoutes.get(
+  "/:id/inquiries",
+  authMiddleware,
+  zValidator("query", inquiryListQuerySchema, validationHook),
+  async (c) => {
+    const propertyId = Number(c.req.param("id"));
+    if (!Number.isInteger(propertyId)) {
+      throw new AppError(404, "NOT_FOUND", "物件が見つかりません");
+    }
+
+    const query = c.req.valid("query");
+    const agent = c.get("agent");
+    if (!agent) {
+      throw new AppError(401, "UNAUTHORIZED", "認証が必要です");
+    }
+
+    const result = await inquiryService.listByProperty(propertyId, query, {
+      agentId: agent.agentId,
+      role: agent.role,
+    });
+
+    return c.json(result);
+  },
+);
+
+propertyRoutes.post(
+  "/:id/inquiries",
+  rateLimitMiddleware,
+  zValidator("json", inquiryCreateSchema, validationHook),
+  async (c) => {
+    const propertyId = Number(c.req.param("id"));
+    if (!Number.isInteger(propertyId)) {
+      throw new AppError(404, "NOT_FOUND", "物件が見つかりません");
+    }
+
+    const body = c.req.valid("json");
+    const inquiry = await inquiryService.create(propertyId, body);
+
+    return c.json(inquiry, 201);
+  },
+);
