@@ -85,7 +85,7 @@ export async function findMany(filter: PropertyFilter) {
   return { rows, total };
 }
 
-export async function findById(id: number) {
+export async function findById(id: number): Promise<typeof properties.$inferSelect | undefined> {
   const [property] = await db.select().from(properties).where(eq(properties.id, id));
   return property;
 }

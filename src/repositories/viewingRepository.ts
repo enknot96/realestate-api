@@ -66,7 +66,7 @@ export async function findMany(filter: ViewingFilter) {
   return { rows, total };
 }
 
-export async function findById(id: number) {
+export async function findById(id: number): Promise<typeof viewings.$inferSelect | undefined> {
   const [viewing] = await db.select().from(viewings).where(eq(viewings.id, id));
   return viewing;
 }
