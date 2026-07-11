@@ -17,7 +17,7 @@ export async function create(executor: Executor, data: InquiryCreateData) {
   return inquiry;
 }
 
-export async function findById(id: number) {
+export async function findById(id: number): Promise<typeof inquiries.$inferSelect | undefined> {
   const [inquiry] = await db.select().from(inquiries).where(eq(inquiries.id, id));
   return inquiry;
 }
