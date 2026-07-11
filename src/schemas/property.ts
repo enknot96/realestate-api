@@ -1,3 +1,4 @@
+import "../lib/zodOpenapi.js";
 import { z } from "zod";
 
 export const propertyListQuerySchema = z.object({
@@ -42,3 +43,30 @@ export const propertyUpdateSchema = z
   });
 
 export type PropertyUpdateInput = z.infer<typeof propertyUpdateSchema>;
+
+// レスポンス用（DBの行がそのままJSONになった形。ここではリクエスト検証は行わずOpenAPIドキュメント生成にのみ使う）
+export const propertySchema = z
+  .object({
+    id: z.number().int().openapi({ example: 1 }),
+    agentId: z.number().int().openapi({ example: 1 }),
+    type: z.enum(["rent", "sale"]),
+    title: z.string().openapi({ example: "渋谷駅徒歩5分 1LDK" }),
+    description: z.string().nullable(),
+    price: z.number().int().openapi({ example: 150000 }),
+    layout: z.string().nullable().openapi({ example: "1LDK" }),
+    area: z.string().nullable().openapi({ example: "40.50" }), // drizzleのnumeric型は文字列で返る
+    address: z.string().openapi({ example: "東京都渋谷区..." }),
+    status: z.enum(["draft", "published", "contracted", "closed"]),
+    createdAt: z.string().openapi({ example: "2026-07-11T00:00:00.000Z" }),
+    updatedAt: z.string().openapi({ example: "2026-07-11T00:00:00.000Z" }),
+  })
+  .openapi("Property");
+
+export const propertyListResponseSchema = z
+  .object({
+    properties: z.array(propertySchema),
+    total: z.number().int(),
+    limit: z.number().int(),
+    offset: z.number().int(),
+  })
+  .openapi("PropertyListResponse");
