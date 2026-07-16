@@ -4,3 +4,7 @@ dist/
 .env.*
 !.env.example
 *.log
+.DS_Store
+
+# ローカル専用の作業メモ
+.private/
