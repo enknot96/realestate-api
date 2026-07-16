@@ -1,4 +1,4 @@
-import { and, count, eq, gte, lte, or } from "drizzle-orm";
+import { and, count, eq, gte, ilike, lte, or } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { properties } from "../db/schema.js";
 
@@ -19,6 +19,8 @@ export type PropertyFilter = {
   status?: PropertyStatus;
   minPrice?: number;
   maxPrice?: number;
+  layout?: string;
+  keyword?: string;
   limit: number;
   offset: number;
   visibility: Visibility;
@@ -63,8 +65,19 @@ function buildConditions(filter: PropertyFilter) {
   if (filter.status) conditions.push(eq(properties.status, filter.status));
   if (filter.minPrice !== undefined) conditions.push(gte(properties.price, filter.minPrice));
   if (filter.maxPrice !== undefined) conditions.push(lte(properties.price, filter.maxPrice));
+  if (filter.layout) conditions.push(eq(properties.layout, filter.layout));
+  if (filter.keyword) {
+    const pattern = `%${escapeLikePattern(filter.keyword)}%`;
+    conditions.push(or(ilike(properties.title, pattern), ilike(properties.description, pattern)));
+  }
 
   return conditions;
+}
+
+// LIKE/ILIKEのメタ文字（% _ \）をエスケープし、入力文字列そのものの部分一致として扱う
+// （例: keyword「100%」が「100に任意の文字列が続く」ではなく文字通りの「100%」にマッチするように）
+function escapeLikePattern(input: string) {
+  return input.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
 export async function findMany(filter: PropertyFilter) {

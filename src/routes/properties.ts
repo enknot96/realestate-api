@@ -12,6 +12,8 @@ import { AppError } from "../lib/errors.js";
 import { rateLimitMiddleware } from "../middlewares/rateLimit.js";
 import { inquiryCreateSchema, inquiryListQuerySchema } from "../schemas/inquiry.js";
 import * as inquiryService from "../services/inquiryService.js";
+import { availabilityQuerySchema } from "../schemas/availability.js";
+import * as availabilityService from "../services/availabilityService.js";
 
 export const propertyRoutes = new Hono<{ Variables: AuthVariables }>();
 
@@ -28,6 +30,26 @@ propertyRoutes.get(
     const requester = agent ? { agentId: agent.agentId, role: agent.role } : null;
 
     const result = await propertyService.list(query, requester);
+    return c.json(result);
+  },
+);
+
+// 内見の空き枠確認（公開・認証不要）。⑥AIエージェントのcheckViewingAvailabilityツールが利用する
+propertyRoutes.get(
+  "/:id/availability",
+  optionalAuthMiddleware,
+  zValidator("query", availabilityQuerySchema, validationHook),
+  async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id)) {
+      throw new AppError(404, "NOT_FOUND", "物件が見つかりません");
+    }
+
+    const query = c.req.valid("query");
+    const agent = c.get("agent");
+    const requester = agent ? { agentId: agent.agentId, role: agent.role } : null;
+
+    const result = await availabilityService.getAvailability(id, query, requester);
     return c.json(result);
   },
 );

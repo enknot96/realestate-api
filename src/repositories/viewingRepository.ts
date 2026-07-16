@@ -1,4 +1,4 @@
-import { and, count, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, count, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { properties, viewings } from "../db/schema.js";
 
@@ -69,6 +69,28 @@ export async function findMany(filter: ViewingFilter) {
 export async function findById(id: number): Promise<typeof viewings.$inferSelect | undefined> {
   const [viewing] = await db.select().from(viewings).where(eq(viewings.id, id));
   return viewing;
+}
+
+// 空き枠計算用: 指定期間内[from, to)にある予約中(scheduled)の内見日時だけを返す
+// （completed/cancelledは枠を塞がない。認証不要の公開エンドポイントから使うため日時以外の情報は返さない）
+export async function findScheduledAtsByPropertyBetween(
+  propertyId: number,
+  from: Date,
+  to: Date,
+): Promise<Date[]> {
+  const rows = await db
+    .select({ scheduledAt: viewings.scheduledAt })
+    .from(viewings)
+    .where(
+      and(
+        eq(viewings.propertyId, propertyId),
+        eq(viewings.status, "scheduled"),
+        gte(viewings.scheduledAt, from),
+        lt(viewings.scheduledAt, to),
+      ),
+    );
+
+  return rows.map((row) => row.scheduledAt);
 }
 
 export async function create(executor: Executor, data: ViewingCreateData) {
