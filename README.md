@@ -3,7 +3,6 @@
 不動産会社の業務（物件管理・問い合わせ対応・内見予約）を題材にした、Hono + Drizzle ORM + Neon (PostgreSQL) によるバックエンドAPI。
 
 - **API仕様書 / 動作確認**: [`/docs`](https://YOUR-DEPLOYMENT-URL.vercel.app/docs)（Swagger UI。デプロイ後にURLを差し替えてください）
-- 実装手順の詳細な仕様は `不動産API_Hono_実装手順書_最終版.md` を参照
 
 ## 目次
 
