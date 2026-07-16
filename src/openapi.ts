@@ -29,6 +29,11 @@ import {
   viewingSchema,
   viewingListResponseSchema,
 } from "./schemas/viewing.js";
+import {
+  availabilityQuerySchema,
+  availabilityResponseSchema,
+  MAX_AVAILABILITY_DAYS,
+} from "./schemas/availability.js";
 
 const registry = new OpenAPIRegistry();
 
@@ -134,7 +139,8 @@ registry.registerPath({
   tags: ["properties"],
   summary: "物件一覧を取得する",
   description:
-    "未認証: 公開中(published)の物件のみ。エージェント: 自分の物件は全ステータス+他人の公開中物件。管理者: 全件",
+    "未認証: 公開中(published)の物件のみ。エージェント: 自分の物件は全ステータス+他人の公開中物件。管理者: 全件。" +
+    "layout（完全一致）・keyword（タイトル/説明の部分一致）・価格帯などで絞り込みできる",
   security: [{ [bearerAuth.name]: [] }, {}], // 認証は任意（付ければagent/admin視点、付けなければ未認証視点で可視性が変わる）
   request: { query: propertyListQuerySchema },
   responses: {
@@ -155,6 +161,27 @@ registry.registerPath({
       code: "NOT_FOUND",
       message: "物件が見つかりません",
     }),
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/properties/{id}/availability",
+  tags: ["properties", "viewings"],
+  summary: "物件の内見空き枠を確認する（公開）",
+  description:
+    `営業時間はJST固定の10:00〜18:00・1時間刻み（1日8枠）。期間は最大${MAX_AVAILABILITY_DAYS}日間。` +
+    "予約中(scheduled)の内見と重複する枠はavailable: falseになる（completed/cancelledは枠を塞がない）。" +
+    "可視性ルールはGET /properties/{id}と同様",
+  security: [{ [bearerAuth.name]: [] }, {}], // 認証は任意
+  request: { params: idParam, query: availabilityQuerySchema },
+  responses: {
+    200: { description: "空き枠一覧", ...jsonContent(availabilityResponseSchema) },
+    404: errorResponse("物件が存在しない、または可視性ルールにより非公開", {
+      code: "NOT_FOUND",
+      message: "物件が見つかりません",
+    }),
+    422: validationError(),
   },
 });
 

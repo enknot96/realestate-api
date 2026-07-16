@@ -51,6 +51,8 @@ export async function list(query: PropertyListQuery, requester: Requester) {
     status: visibility.kind === "public" ? undefined : query.status,
     minPrice: query.minPrice,
     maxPrice: query.maxPrice,
+    layout: query.layout,
+    keyword: query.keyword,
     limit: query.limit,
     offset: query.offset,
     visibility,

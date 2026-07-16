@@ -6,6 +6,8 @@ export const propertyListQuerySchema = z.object({
   status: z.enum(["draft", "published", "contracted", "closed"]).optional(),
   minPrice: z.coerce.number().int().nonnegative().optional(),
   maxPrice: z.coerce.number().int().nonnegative().optional(),
+  layout: z.string().min(1).optional(),
+  keyword: z.string().min(1).max(100).optional(),
   limit: z.coerce.number().int().positive().max(100).default(20),
   offset: z.coerce.number().int().nonnegative().default(0),
 });

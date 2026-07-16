@@ -11,7 +11,13 @@ import { generateOpenApiDocument } from "./openapi.js";
 export const app = new Hono();
 
 app.onError(errorHandler);
-app.use("*", csrfMiddleware);
+
+// Origin検証（CSRF対策）はCookieが自動送信されるルートに限定する。
+// Bearerトークン必須のルートや公開POSTは、攻撃者が被害者の資格情報を伴って
+// クロスサイトから呼ばせることができないためCSRFの脅威モデル外
+// （サーバー間通信やcurlのようなOriginヘッダーを送らないクライアントを許容する）
+app.use("/auth/refresh", csrfMiddleware);
+app.use("/auth/logout", csrfMiddleware);
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 

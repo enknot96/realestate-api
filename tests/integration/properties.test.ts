@@ -94,6 +94,62 @@ describe("GET /properties 可視性ルール", () => {
   });
 });
 
+describe("GET /properties 検索パラメータ", () => {
+  async function createPublished(token: string, fields: Record<string, unknown>) {
+    const createRes = await app.request("/properties", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ type: "rent", price: 80000, address: "東京都", ...fields }),
+    });
+    const property = (await createRes.json()) as any;
+    await app.request(`/properties/${property.id}`, {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify({ status: "published" }),
+    });
+    return property;
+  }
+
+  it("layoutは完全一致で絞り込める", async () => {
+    const agent = await createTestAgent();
+    await createPublished(agent.accessToken, { title: "2LDK物件", layout: "2LDK" });
+    await createPublished(agent.accessToken, { title: "1LDK物件", layout: "1LDK" });
+
+    const res = await app.request("/properties?layout=2LDK");
+    const body = (await res.json()) as any;
+
+    expect(body.properties).toHaveLength(1);
+    expect(body.properties[0].title).toBe("2LDK物件");
+  });
+
+  it("keywordはタイトルと説明を部分一致で横断検索する", async () => {
+    const agent = await createTestAgent();
+    await createPublished(agent.accessToken, {
+      title: "駅近マンション",
+      description: "ペット可・南向きバルコニー",
+    });
+    await createPublished(agent.accessToken, { title: "ペット可アパート" });
+    await createPublished(agent.accessToken, { title: "郊外の一軒家", description: "庭付き" });
+
+    const res = await app.request(`/properties?keyword=${encodeURIComponent("ペット可")}`);
+    const body = (await res.json()) as any;
+
+    expect(body.properties).toHaveLength(2);
+  });
+
+  it("keywordのLIKEメタ文字（%など）はエスケープされ文字通りに扱われる", async () => {
+    const agent = await createTestAgent();
+    await createPublished(agent.accessToken, { title: "仲介手数料100%オフ" });
+    await createPublished(agent.accessToken, { title: "仲介手数料100円" });
+
+    const res = await app.request(`/properties?keyword=${encodeURIComponent("100%")}`);
+    const body = (await res.json()) as any;
+
+    expect(body.properties).toHaveLength(1);
+    expect(body.properties[0].title).toBe("仲介手数料100%オフ");
+  });
+});
+
 describe("PATCH /properties/:id 状態遷移", () => {
   it("他人の物件を更新しようとすると403", async () => {
     const agentA = await createTestAgent();
