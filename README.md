@@ -2,7 +2,8 @@
 
 不動産会社の業務（物件管理・問い合わせ対応・内見予約）を題材にした、Hono + Drizzle ORM + Neon (PostgreSQL) によるバックエンドAPI。
 
-- **API仕様書 / 動作確認**: [`/docs`](https://YOUR-DEPLOYMENT-URL.vercel.app/docs)（Swagger UI。デプロイ後にURLを差し替えてください）
+- **本番環境**: https://realestate-api-phi.vercel.app
+- **API仕様書 / 動作確認**: [`/docs`](https://realestate-api-phi.vercel.app/docs)（Swagger UI。ブラウザから全エンドポイントを試せます）
 
 ## 目次
 
@@ -289,4 +290,4 @@ pnpm test
 
 Vercel（アプリ）+ Neon（DB）。`api/index.ts`で`hono/vercel`の`handle()`を使いVercel Functionsとして公開している。既存の（`/api`プレフィックスの無い）ルート構成をそのまま活かすため、`vercel.json`で全パスを`api/index.ts`にリライトしている。
 
-- 本番URL: （デプロイ後に追記）
+- 本番URL: https://realestate-api-phi.vercel.app
