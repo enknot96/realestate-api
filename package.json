@@ -8,7 +8,8 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
-    "seed:local": "tsx --env-file=.env scripts/seed.ts"
+    "seed:local": "tsx --env-file=.env scripts/seed.ts",
+    "upload-images": "tsx scripts/uploadImages.ts"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +31,7 @@
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-validator": "^0.8.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@vercel/blob": "^2.6.1",
     "bcrypt": "^6.0.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.27",
