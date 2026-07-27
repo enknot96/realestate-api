@@ -21,6 +21,7 @@ export const propertyCreateSchema = z.object({
   price: z.number().int().positive(),
   layout: z.string().min(1).optional(),
   area: z.number().positive().optional(),
+  imageUrl: z.string().url().optional(),
   address: z.string().min(1),
 });
 
@@ -34,6 +35,7 @@ export const propertyUpdateSchema = z
     price: z.number().int().positive(),
     layout: z.string().min(1),
     area: z.number().positive(),
+    imageUrl: z.string().url(),
     address: z.string().min(1),
     status: z.enum(["draft", "published", "contracted", "closed"]),
   })
@@ -57,6 +59,9 @@ export const propertySchema = z
     price: z.number().int().openapi({ example: 150000 }),
     layout: z.string().nullable().openapi({ example: "1LDK" }),
     area: z.string().nullable().openapi({ example: "40.50" }), // drizzleのnumeric型は文字列で返る
+    imageUrl: z.string().nullable().openapi({
+      example: "https://xxxxx.public.blob.vercel-storage.com/properties/1.jpg",
+    }),
     address: z.string().openapi({ example: "東京都渋谷区..." }),
     status: z.enum(["draft", "published", "contracted", "closed"]),
     createdAt: z.string().openapi({ example: "2026-07-11T00:00:00.000Z" }),

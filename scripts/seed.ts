@@ -650,7 +650,14 @@ async function main() {
 
   const insertedProperties = await db
     .insert(properties)
-    .values(PROPERTY_SEEDS.map((seed) => ({ ...seed, agentId: demoAgent.id })))
+    .values(
+      PROPERTY_SEEDS.map((seed, index) => ({
+        ...seed,
+        agentId: demoAgent.id,
+        // ローカル確認用のダミー画像（本番用の画像アップロードとは無関係）
+        imageUrl: `https://picsum.photos/seed/property-${index + 1}/800/600`,
+      })),
+    )
     .returning({ id: properties.id, title: properties.title });
 
   const insertedCustomers = await db.insert(customers).values(CUSTOMER_SEEDS).returning();

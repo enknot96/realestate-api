@@ -33,6 +33,7 @@ export type PropertyCreateData = {
   price: number;
   layout?: string;
   area?: number;
+  imageUrl?: string;
   address: string;
 };
 
@@ -43,6 +44,7 @@ export type PropertyUpdateData = {
   price?: number;
   layout?: string;
   area?: number;
+  imageUrl?: string;
   address?: string;
   status?: PropertyStatus;
 };
@@ -114,6 +116,7 @@ export async function create(executor: Executor, agentId: number, data: Property
       price: data.price,
       layout: data.layout,
       area: data.area !== undefined ? String(data.area) : undefined,
+      imageUrl: data.imageUrl,
       address: data.address,
     })
     .returning();

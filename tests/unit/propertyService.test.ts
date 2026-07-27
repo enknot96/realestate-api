@@ -31,6 +31,7 @@ function fakeProperty(
     price: 5000,
     layout: null,
     area: null,
+    imageUrl: null,
     address: "東京都",
     status: "draft" as PropertyStatus,
     createdAt: new Date(),
