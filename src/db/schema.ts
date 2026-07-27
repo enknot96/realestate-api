@@ -52,6 +52,7 @@ export const properties = pgTable(
     price: integer("price").notNull(),
     layout: text("layout"),
     area: numeric("area", { precision: 8, scale: 2 }),
+    imageUrl: text("image_url"),
     address: text("address").notNull(),
     status: propertyStatusEnum("status").notNull().default("draft"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
