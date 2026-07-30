@@ -13,3 +13,5 @@ dist/
 images/
 
 物件画像対応_実装手順書.md
+.vercel
+.env*
