@@ -140,7 +140,7 @@ registry.registerPath({
   summary: "物件一覧を取得する",
   description:
     "未認証: 公開中(published)の物件のみ。エージェント: 自分の物件は全ステータス+他人の公開中物件。管理者: 全件。" +
-    "layout（完全一致）・keyword（タイトル/説明の部分一致）・価格帯などで絞り込みできる",
+    "layout（完全一致）・keyword（タイトル/説明の部分一致）・価格帯などで絞り込みできる。sortで並び順（新着順・価格順）を指定できる（未指定はid昇順）",
   security: [{ [bearerAuth.name]: [] }, {}], // 認証は任意（付ければagent/admin視点、付けなければ未認証視点で可視性が変わる）
   request: { query: propertyListQuerySchema },
   responses: {

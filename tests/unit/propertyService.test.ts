@@ -182,3 +182,25 @@ describe("propertyService.getById 可視性ルール", () => {
     });
   });
 });
+
+describe("propertyService.list sort", () => {
+  it("sortがrepositoryのfindManyまで渡る", async () => {
+    vi.mocked(propertyRepository.findMany).mockResolvedValue({ rows: [], total: 0 });
+
+    await propertyService.list({ sort: "price_asc", limit: 20, offset: 0 }, null);
+
+    expect(propertyRepository.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "price_asc" }),
+    );
+  });
+
+  it("sort未指定ならundefinedのまま渡る（既定のid昇順はrepository側で決まる）", async () => {
+    vi.mocked(propertyRepository.findMany).mockResolvedValue({ rows: [], total: 0 });
+
+    await propertyService.list({ limit: 20, offset: 0 }, null);
+
+    expect(propertyRepository.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: undefined }),
+    );
+  });
+});

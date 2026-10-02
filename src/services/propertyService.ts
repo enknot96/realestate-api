@@ -53,6 +53,7 @@ export async function list(query: PropertyListQuery, requester: Requester) {
     maxPrice: query.maxPrice,
     layout: query.layout,
     keyword: query.keyword,
+    sort: query.sort,
     limit: query.limit,
     offset: query.offset,
     visibility,
