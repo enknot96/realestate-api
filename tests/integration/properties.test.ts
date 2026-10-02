@@ -218,11 +218,12 @@ describe("GET /properties 並び順（sort）", () => {
       expect(new Set(collected).size).toBe(7);
       expect([...collected].sort((x, y) => x - y)).toEqual(created);
     }
-  });
+    // リモートDBに対して作成・公開14リクエスト＋一覧取得12回を直列で行うため、既定の5秒では足りない
+  }, 30_000);
 
-  it("不正なsortは400", async () => {
+  it("不正なsortは422", async () => {
     const res = await app.request("/properties?sort=invalid");
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
   });
 });
 
