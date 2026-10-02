@@ -1,9 +1,10 @@
-import { and, count, eq, gte, ilike, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { properties } from "../db/schema.js";
 
 type PropertyStatus = "draft" | "published" | "contracted" | "closed";
 type PropertyType = "rent" | "sale";
+export type PropertySort = "newest" | "price_asc" | "price_desc";
 
 // 普通のフィールド更新（タイトル修正など、副作用なし）→ dbをそのまま渡して呼ぶ
 // contracted/closedへの遷移（内見一括キャンセルとセットで実行する必要がある）→ db.transaction()の中でtxを渡して呼ぶ
@@ -21,6 +22,7 @@ export type PropertyFilter = {
   maxPrice?: number;
   layout?: string;
   keyword?: string;
+  sort?: PropertySort;
   limit: number;
   offset: number;
   visibility: Visibility;
@@ -82,6 +84,21 @@ function escapeLikePattern(input: string) {
   return input.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
+// ORDER BYが無いとPostgreSQLは行順を保証せず、limit/offsetのページングで重複・欠落が起き得る
+// → どのsortでも最後にid昇順をタイブレーカーとして付け、順序を完全に決定的にする
+function buildOrderBy(sort: PropertySort | undefined) {
+  switch (sort) {
+    case "newest":
+      return [desc(properties.createdAt), asc(properties.id)];
+    case "price_asc":
+      return [asc(properties.price), asc(properties.id)];
+    case "price_desc":
+      return [desc(properties.price), asc(properties.id)];
+    default:
+      return [asc(properties.id)];
+  }
+}
+
 export async function findMany(filter: PropertyFilter) {
   const conditions = buildConditions(filter);
 
@@ -89,6 +106,7 @@ export async function findMany(filter: PropertyFilter) {
     .select()
     .from(properties)
     .where(and(...conditions))
+    .orderBy(...buildOrderBy(filter.sort))
     .limit(filter.limit)
     .offset(filter.offset);
 

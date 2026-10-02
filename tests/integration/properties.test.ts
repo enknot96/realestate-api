@@ -150,6 +150,83 @@ describe("GET /properties 検索パラメータ", () => {
   });
 });
 
+describe("GET /properties 並び順（sort）", () => {
+  async function createPublished(token: string, price: number, title: string) {
+    const createRes = await app.request("/properties", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ type: "rent", price, title, address: "東京都" }),
+    });
+    const property = (await createRes.json()) as any;
+    await app.request(`/properties/${property.id}`, {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify({ status: "published" }),
+    });
+    return property;
+  }
+
+  async function listIds(query: string) {
+    const res = await app.request(`/properties${query}`);
+    expect(res.status).toBe(200);
+    return ((await res.json()) as any).properties.map((p: any) => p.id as number);
+  }
+
+  // 価格: 3万, 1万, 2万, 1万（id昇順に作成）
+  async function seed() {
+    const agent = await createTestAgent();
+    const a = await createPublished(agent.accessToken, 30000, "A");
+    const b = await createPublished(agent.accessToken, 10000, "B");
+    const c = await createPublished(agent.accessToken, 20000, "C");
+    const d = await createPublished(agent.accessToken, 10000, "D");
+    return { a: a.id, b: b.id, c: c.id, d: d.id };
+  }
+
+  it("sort未指定はid昇順", async () => {
+    const { a, b, c, d } = await seed();
+    expect(await listIds("")).toEqual([a, b, c, d]);
+  });
+
+  it("price_ascは価格の安い順で、同価格はid昇順", async () => {
+    const { a, b, c, d } = await seed();
+    expect(await listIds("?sort=price_asc")).toEqual([b, d, c, a]);
+  });
+
+  it("price_descは価格の高い順で、同価格はid昇順", async () => {
+    const { a, b, c, d } = await seed();
+    expect(await listIds("?sort=price_desc")).toEqual([a, c, b, d]);
+  });
+
+  it("newestは作成日時の降順（新しい物件が先）", async () => {
+    const { a, b, c, d } = await seed();
+    expect(await listIds("?sort=newest")).toEqual([d, c, b, a]);
+  });
+
+  it("同価格の物件でもlimit/offsetのページングに重複・欠落が無い", async () => {
+    const agent = await createTestAgent();
+    const created: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      created.push((await createPublished(agent.accessToken, 50000, `同価格${i}`)).id);
+    }
+
+    for (const sort of ["", "&sort=price_asc", "&sort=price_desc", "&sort=newest"]) {
+      const collected: number[] = [];
+      for (let offset = 0; offset < 7; offset += 3) {
+        collected.push(...(await listIds(`?limit=3&offset=${offset}${sort}`)));
+      }
+      expect(collected).toHaveLength(7);
+      expect(new Set(collected).size).toBe(7);
+      expect([...collected].sort((x, y) => x - y)).toEqual(created);
+    }
+    // リモートDBに対して作成・公開14リクエスト＋一覧取得12回を直列で行うため、既定の5秒では足りない
+  }, 30_000);
+
+  it("不正なsortは422", async () => {
+    const res = await app.request("/properties?sort=invalid");
+    expect(res.status).toBe(422);
+  });
+});
+
 describe("PATCH /properties/:id 状態遷移", () => {
   it("他人の物件を更新しようとすると403", async () => {
     const agentA = await createTestAgent();
