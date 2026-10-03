@@ -62,14 +62,14 @@ export const propertyListQuerySchema = z.object({
   maxPrice: z.coerce.number().int().nonnegative().optional(),
   layout: z.string().min(1).optional(),
   keyword: z.string().min(1).max(100).optional(),
-  // 未指定時はid昇順（既存クライアントの並びを変えないため）。どのsortでも最終的にid昇順で順序を確定する
+  // 未指定時はid昇順（既存クライアントの並びを変えないため）。どのsortでも最終的にidで順序を確定する（newestのみid降順）
   sort: z
     .enum(["newest", "price_asc", "price_desc"])
     .optional()
     .openapi({
       description:
         "並び順。newest=新着順（作成日時の降順）、price_asc=価格の安い順、price_desc=価格の高い順。" +
-        "未指定時はid昇順。同値の物件は常にid昇順",
+        "未指定時はid昇順。同値の物件はid昇順（newestのみid降順）",
     }),
   limit: z.coerce.number().int().positive().max(100).default(20),
   offset: z.coerce.number().int().nonnegative().default(0),

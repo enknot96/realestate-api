@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { app } from "../../src/app.js";
 import { createTestAgent } from "../helpers/auth.js";
 import { resetDatabase } from "../helpers/db.js";
+import { db } from "../../src/db/index.js";
+import { properties } from "../../src/db/schema.js";
 
 const ORIGIN = "http://localhost:5173";
 
@@ -199,6 +201,13 @@ describe("GET /properties 並び順（sort）", () => {
 
   it("newestは作成日時の降順（新しい物件が先）", async () => {
     const { a, b, c, d } = await seed();
+    expect(await listIds("?sort=newest")).toEqual([d, c, b, a]);
+  });
+
+  it("newestで作成日時が同じ物件は、idの大きい方（後から登録した方）が先", async () => {
+    const { a, b, c, d } = await seed();
+    // シードのように全件が同じ作成日時になる状況を作る
+    await db.update(properties).set({ createdAt: new Date("2026-01-01T00:00:00Z") });
     expect(await listIds("?sort=newest")).toEqual([d, c, b, a]);
   });
 
