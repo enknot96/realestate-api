@@ -199,7 +199,7 @@ const PROPERTY_SEEDS: PropertySeed[] = [
   {
     type: "rent",
     title: "池袋駅徒歩10分 1K プレール池袋West 604",
-    description: "都心アクセス抜群の1K。宅配ボックス・防犯カメラ・オートロック完備。",
+    description: "池袋駅まで徒歩10分の1K。宅配ボックス・防犯カメラ・オートロック完備。",
     price: 85000,
     layout: "1K",
     area: "25.10",
@@ -833,7 +833,7 @@ const PROPERTY_SEEDS: PropertySeed[] = [
   // ── 関西の売買published（売地5・中古戸建5・中古マンション5。id 56〜70） ──
   {
     type: "sale",
-    title: "此花区春日出北 売地 約25坪 整形地",
+    title: "此花区春日出北 売地 82.40㎡（約24.9坪） 整形地",
     description:
       "JRゆめ咲線安治川口駅徒歩8分。間口の広い整形地で、建築プランを組みやすい土地です。上下水道・都市ガス引込済み。ハザードマップは契約前に必ずご確認ください。",
     price: 34800000,
@@ -884,7 +884,7 @@ const PROPERTY_SEEDS: PropertySeed[] = [
   },
   {
     type: "sale",
-    title: "住吉区遠里小野 売地 約32坪 角地",
+    title: "住吉区遠里小野 売地 105.80㎡（約32.0坪） 角地",
     description: "南海高野線我孫子前駅徒歩10分。南東角地で採光・通風に恵まれた土地です。前面道路は幅員6mで、車の出入りがしやすい条件です。",
     price: 29800000,
     address: "大阪府大阪市住吉区遠里小野5-4-21",
@@ -1007,7 +1007,7 @@ const PROPERTY_SEEDS: PropertySeed[] = [
   },
   {
     type: "sale",
-    title: "宝塚市逆瀬川 売地 約38坪 建築条件なし",
+    title: "宝塚市逆瀬川 売地 125.60㎡（約38.0坪） 建築条件なし",
     description: "阪急今津線逆瀬川駅徒歩5分。建築条件はなく、お好みのハウスメーカーで建築できます。落ち着いた住宅街の南向きの土地です。",
     price: 54800000,
     address: "兵庫県宝塚市逆瀬川2-6-9",
@@ -1020,10 +1020,10 @@ const PROPERTY_SEEDS: PropertySeed[] = [
   },
   {
     type: "sale",
-    title: "伊丹市中央 売地 約30坪 整形地",
+    title: "伊丹市中央 売地 99.40㎡（約30.1坪） 整形地",
     description: "阪急伊丹線伊丹駅徒歩9分。ほぼ整形の土地で、周辺にスーパーや公園がそろいます。私道負担が一部あります。",
     price: 41800000,
-    address: "兵庫県伊丹市中央3-8-13",
+    address: "兵庫県伊丹市中央3-4-13",
     saleKind: "land",
     landArea: "99.40",
     privateRoadArea: "8.50",
@@ -1033,7 +1033,7 @@ const PROPERTY_SEEDS: PropertySeed[] = [
   },
   {
     type: "sale",
-    title: "長岡京市友岡 売地 約45坪 南向き",
+    title: "長岡京市友岡 売地 148.20㎡（約44.8坪） 南向き",
     description: "阪急京都線長岡天神駅徒歩14分。南向きでゆとりのある広さの土地です。小学校まで徒歩7分、前面道路は幅員5mです。",
     price: 19800000,
     address: "京都府長岡京市友岡2-10-5",
