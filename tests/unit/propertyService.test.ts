@@ -31,6 +31,22 @@ function fakeProperty(
     price: 5000,
     layout: null,
     area: null,
+    saleKind: null,
+    landArea: null,
+    privateRoadArea: null,
+    buildingArea: null,
+    builtYearMonth: null,
+    nearestStation: null,
+    walkMinutes: null,
+    accessNote: null,
+    floorCount: null,
+    floorNumber: null,
+    balconyArea: null,
+    managementFee: null,
+    repairReserveFee: null,
+    managementType: null,
+    latitude: null,
+    longitude: null,
     imageUrl: null,
     address: "東京都",
     status: "draft" as PropertyStatus,
@@ -42,6 +58,60 @@ function fakeProperty(
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("propertyService 項目の矛盾チェック", () => {
+  it("作成: saleKindを持つのにtypeがrentなら400でDBに書かない", async () => {
+    await expect(
+      propertyService.create(
+        { type: "rent", title: "x", price: 1000, address: "東京都", saleKind: "land" },
+        AGENT,
+      ),
+    ).rejects.toMatchObject({ statusCode: 400, code: "INCONSISTENT_PROPERTY" });
+    expect(propertyRepository.create).not.toHaveBeenCalled();
+  });
+
+  it("作成: 項目を何も付けない既存形式は通る", async () => {
+    vi.mocked(propertyRepository.create).mockResolvedValue(fakeProperty());
+    await propertyService.create({ type: "sale", title: "x", price: 1000, address: "東京都" }, AGENT);
+    expect(propertyRepository.create).toHaveBeenCalled();
+  });
+
+  it("更新: saleKindを持つ既存物件をtype: rentに変える更新は、既存値と重ねて判定され400", async () => {
+    const property = { ...fakeProperty({ agentId: 1 }), saleKind: "used_house" as const };
+    vi.mocked(propertyRepository.findById).mockResolvedValue(property);
+
+    await expect(propertyService.update(1, { type: "rent" }, AGENT)).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    expect(propertyRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("更新: 既存がland+更新でbuildingAreaを足すと400", async () => {
+    const property = { ...fakeProperty({ agentId: 1 }), saleKind: "land" as const };
+    vi.mocked(propertyRepository.findById).mockResolvedValue(property);
+
+    await expect(propertyService.update(1, { buildingArea: 90 }, AGENT)).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
+
+  it("更新: 既存の緯度に経度だけ足せば矛盾せず通る", async () => {
+    const property = { ...fakeProperty({ agentId: 1 }), latitude: "35.100000" };
+    vi.mocked(propertyRepository.findById).mockResolvedValue(property);
+    vi.mocked(propertyRepository.update).mockResolvedValue(property);
+
+    await propertyService.update(1, { longitude: 139.7 }, AGENT);
+    expect(propertyRepository.update).toHaveBeenCalled();
+  });
+
+  it("更新: 緯度だけを持つ状態になる更新は400", async () => {
+    vi.mocked(propertyRepository.findById).mockResolvedValue(fakeProperty({ agentId: 1 }));
+
+    await expect(propertyService.update(1, { latitude: 35.1 }, AGENT)).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
 });
 
 describe("propertyService.update", () => {
