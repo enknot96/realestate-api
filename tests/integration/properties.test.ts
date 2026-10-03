@@ -307,3 +307,147 @@ describe("DELETE /properties/:id", () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe("売買物件の項目拡張", () => {
+  async function createProperty(token: string, body: Record<string, unknown>) {
+    return app.request("/properties", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ title: "テスト物件", price: 5000, address: "東京都", ...body }),
+    });
+  }
+
+  it("新しい項目を付けて作成・取得でき、numericは文字列で返る", async () => {
+    const agent = await createTestAgent();
+
+    const res = await createProperty(agent.accessToken, {
+      type: "sale",
+      saleKind: "used_mansion",
+      area: 65.5,
+      builtYearMonth: "2010-03",
+      nearestStation: "西宮北口",
+      walkMinutes: 7,
+      floorCount: 14,
+      floorNumber: -1,
+      balconyArea: 9.8,
+      managementFee: 12000,
+      repairReserveFee: 9500,
+      managementType: "全部委託・日勤",
+      latitude: 34.7425,
+      longitude: 135.3621,
+    });
+
+    expect(res.status).toBe(201);
+    const created = (await res.json()) as any;
+    expect(created.saleKind).toBe("used_mansion");
+    expect(created.area).toBe("65.50");
+    expect(created.balconyArea).toBe("9.80");
+    expect(created.latitude).toBe("34.742500");
+    expect(created.longitude).toBe("135.362100");
+    expect(created.walkMinutes).toBe(7);
+    expect(created.floorNumber).toBe(-1);
+    expect(created.landArea).toBeNull();
+
+    const getRes = await app.request(`/properties/${created.id}`, {
+      headers: authHeaders(agent.accessToken),
+    });
+    const fetched = (await getRes.json()) as any;
+    expect(fetched.builtYearMonth).toBe("2010-03");
+    expect(fetched.managementType).toBe("全部委託・日勤");
+  });
+
+  it("売地: 私道負担0は0.00で保存される（不明のnullと区別できる）", async () => {
+    const agent = await createTestAgent();
+
+    const res = await createProperty(agent.accessToken, {
+      type: "sale",
+      saleKind: "land",
+      landArea: 120.5,
+      privateRoadArea: 0,
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as any;
+    expect(body.landArea).toBe("120.50");
+    expect(body.privateRoadArea).toBe("0.00");
+  });
+
+  it("新しい項目を何も付けない既存形式の作成は従来どおり201", async () => {
+    const agent = await createTestAgent();
+
+    const res = await createProperty(agent.accessToken, { type: "sale", area: 50 });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as any;
+    expect(body.saleKind).toBeNull();
+    expect(body.latitude).toBeNull();
+  });
+
+  it("builtYearMonthの形式不正は422", async () => {
+    const agent = await createTestAgent();
+
+    const res = await createProperty(agent.accessToken, {
+      type: "sale",
+      saleKind: "used_house",
+      builtYearMonth: "2010-13",
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it("矛盾した作成は400（rentにsaleKind / 売地に建物項目 / 緯度だけ）", async () => {
+    const agent = await createTestAgent();
+
+    const cases = [
+      { type: "rent", saleKind: "used_house" },
+      { type: "sale", saleKind: "land", builtYearMonth: "2010-03" },
+      { type: "sale", latitude: 35.1 },
+    ];
+    for (const body of cases) {
+      const res = await createProperty(agent.accessToken, body);
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as any;
+      expect(json.error.code).toBe("INCONSISTENT_PROPERTY");
+    }
+  });
+
+  it("矛盾した更新は400（既存の行に重ねた結果で判定）", async () => {
+    const agent = await createTestAgent();
+    const createRes = await createProperty(agent.accessToken, {
+      type: "sale",
+      saleKind: "used_house",
+    });
+    const created = (await createRes.json()) as any;
+
+    const res = await app.request(`/properties/${created.id}`, {
+      method: "PATCH",
+      headers: authHeaders(agent.accessToken),
+      body: JSON.stringify({ type: "rent" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /properties?saleKind=used_mansion で絞り込める", async () => {
+    const agent = await createTestAgent();
+    for (const body of [
+      { type: "sale", saleKind: "used_mansion", title: "マンション" },
+      { type: "sale", saleKind: "land", title: "売地" },
+      { type: "sale", title: "種別なし" },
+    ]) {
+      const res = await createProperty(agent.accessToken, body);
+      const created = (await res.json()) as any;
+      await app.request(`/properties/${created.id}`, {
+        method: "PATCH",
+        headers: authHeaders(agent.accessToken),
+        body: JSON.stringify({ status: "published" }),
+      });
+    }
+
+    const res = await app.request("/properties?saleKind=used_mansion");
+    const body = (await res.json()) as any;
+
+    expect(body.total).toBe(1);
+    expect(body.properties[0].title).toBe("マンション");
+  });
+});
