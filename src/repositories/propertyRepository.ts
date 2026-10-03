@@ -143,11 +143,12 @@ function escapeLikePattern(input: string) {
 }
 
 // ORDER BYが無いとPostgreSQLは行順を保証せず、limit/offsetのページングで重複・欠落が起き得る
-// → どのsortでも最後にid昇順をタイブレーカーとして付け、順序を完全に決定的にする
+// → どのsortでも最後にidをタイブレーカーとして付け、順序を完全に決定的にする
+// newestだけはid降順（作成日時が同じ物件は、後から登録した＝idが大きい方を新しいとみなす。シードは全件が同じ作成日時になる）
 function buildOrderBy(sort: PropertySort | undefined) {
   switch (sort) {
     case "newest":
-      return [desc(properties.createdAt), asc(properties.id)];
+      return [desc(properties.createdAt), desc(properties.id)];
     case "price_asc":
       return [asc(properties.price), asc(properties.id)];
     case "price_desc":

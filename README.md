@@ -87,7 +87,7 @@ properties ─< inquiries (問い合わせ) >─ customers (顧客・emailでups
 ### 可視性・認可ルール
 
 - 物件一覧・詳細（`GET /properties`）は認証任意。未認証は`published`のみ、エージェントは自分の物件は全ステータス+他人の公開中物件、管理者は全件、という3段階の可視性ルール
-- 物件一覧（`GET /properties`）の並び順は`sort`で指定できる（`newest`=新着順 / `price_asc`=価格の安い順 / `price_desc`=価格の高い順）。未指定時は`id`昇順で、どの指定でも同値は`id`昇順の決定的な順序にしている（`ORDER BY`が無いとlimit/offsetのページングで重複・欠落が起き得るため）
+- 物件一覧（`GET /properties`）の並び順は`sort`で指定できる（`newest`=新着順 / `price_asc`=価格の安い順 / `price_desc`=価格の高い順）。未指定時は`id`昇順で、どの指定でも同値は`id`で決定的な順序にしている（`newest`だけは同じ作成日時なら`id`降順＝後から登録した物件が先。それ以外は`id`昇順）（`ORDER BY`が無いとlimit/offsetのページングで重複・欠落が起き得るため）
 - 物件・問い合わせ・内見予約への書き込み操作は、所有権チェック（`assertOwnership`、`src/lib/authorization.ts`）により他人の物件への操作を403で拒否
 
 ## APIドキュメント（Swagger UI）
