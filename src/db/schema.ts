@@ -14,6 +14,7 @@ import {
 // pgEnum(型名, 許可する値の配列)
 export const agentRoleEnum = pgEnum("agent_role", ["agent", "admin"]);
 export const propertyTypeEnum = pgEnum("property_type", ["rent", "sale"]);
+export const saleKindEnum = pgEnum("sale_kind", ["land", "new_house", "used_house", "used_mansion"]);
 export const propertyStatusEnum = pgEnum("property_status", [
   "draft",
   "published",
@@ -55,12 +56,30 @@ export const properties = pgTable(
     imageUrl: text("image_url"),
     address: text("address").notNull(),
     status: propertyStatusEnum("status").notNull().default("draft"),
+    // 売買物件の事実項目（すべてnullable。saleKindはtype='sale'のときだけ値を持つ）
+    saleKind: saleKindEnum("sale_kind"),
+    landArea: numeric("land_area", { precision: 8, scale: 2 }),
+    privateRoadArea: numeric("private_road_area", { precision: 8, scale: 2 }),
+    buildingArea: numeric("building_area", { precision: 8, scale: 2 }),
+    builtYearMonth: text("built_year_month"),
+    nearestStation: text("nearest_station"),
+    walkMinutes: integer("walk_minutes"),
+    accessNote: text("access_note"),
+    floorCount: integer("floor_count"),
+    floorNumber: integer("floor_number"),
+    balconyArea: numeric("balcony_area", { precision: 8, scale: 2 }),
+    managementFee: integer("management_fee"),
+    repairReserveFee: integer("repair_reserve_fee"),
+    managementType: text("management_type"),
+    latitude: numeric("latitude", { precision: 9, scale: 6 }),
+    longitude: numeric("longitude", { precision: 9, scale: 6 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("properties_status_idx").on(table.status),
     index("properties_type_idx").on(table.type),
+    index("properties_sale_kind_idx").on(table.saleKind),
     index("properties_price_idx").on(table.price),
   ],
 );

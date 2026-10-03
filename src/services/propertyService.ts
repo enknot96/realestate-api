@@ -7,6 +7,7 @@ import type {
   PropertyListQuery,
   PropertyUpdateInput,
 } from "../schemas/property.js";
+import { findPropertyInconsistencies } from "../lib/propertyConsistency.js";
 import { assertOwnership, type AuthenticatedRequester } from "../lib/authorization.js";
 
 type PropertyStatus = "draft" | "published" | "contracted" | "closed";
@@ -25,6 +26,14 @@ function resolveVisibility(requester: Requester): propertyRepository.Visibility 
   if (!requester) return { kind: "public" };
   if (requester.role === "admin") return { kind: "admin" };
   return { kind: "agent", agentId: requester.agentId };
+}
+
+// 項目どうしの矛盾（種別ごとの必須は強制しない）を400で弾く
+function assertConsistent(target: Parameters<typeof findPropertyInconsistencies>[0]) {
+  const problems = findPropertyInconsistencies(target);
+  if (problems.length > 0) {
+    throw new AppError(400, "INCONSISTENT_PROPERTY", problems.join("。"), problems);
+  }
 }
 
 function assertValidTransition(from: PropertyStatus, to: PropertyStatus) {
@@ -47,6 +56,7 @@ export async function list(query: PropertyListQuery, requester: Requester) {
 
   const { rows, total } = await propertyRepository.findMany({
     type: query.type,
+    saleKind: query.saleKind,
     // 未認証の場合、statusパラメータは可視性ルールに上書きされるため無視する
     status: visibility.kind === "public" ? undefined : query.status,
     minPrice: query.minPrice,
@@ -82,6 +92,7 @@ export async function getById(id: number, requester: Requester) {
 }
 
 export async function create(input: PropertyCreateInput, requester: AuthenticatedRequester) {
+  assertConsistent(input);
   return propertyRepository.create(db, requester.agentId, input);
 }
 
@@ -96,6 +107,9 @@ export async function update(
   }
 
   assertOwnership(property, requester);
+
+  // 更新内容だけでなく「既存の行に更新内容を重ねた結果」で矛盾を判定する
+  assertConsistent({ ...property, ...input });
 
   if (input.status !== undefined && input.status !== property.status) {
     assertValidTransition(property.status, input.status);

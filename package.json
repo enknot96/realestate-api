@@ -9,7 +9,8 @@
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
     "seed:local": "tsx --env-file=.env scripts/seed.ts",
-    "upload-images": "tsx scripts/uploadImages.ts"
+    "upload-images": "tsx scripts/uploadImages.ts",
+    "geocode": "tsx scripts/geocode.ts"
   },
   "keywords": [],
   "author": "",

@@ -194,6 +194,10 @@ registry.registerPath({
   request: { body: { content: { "application/json": { schema: propertyCreateSchema } } } },
   responses: {
     201: { description: "登録成功", ...jsonContent(propertySchema) },
+    400: errorResponse("項目どうしの矛盾（売地に建物項目など）", {
+      code: "INCONSISTENT_PROPERTY",
+      message: "売買の種別（saleKind）は、type が sale の物件にだけ指定できます",
+    }),
     401: unauthorizedError(),
     422: validationError(),
   },
@@ -211,6 +215,10 @@ registry.registerPath({
   },
   responses: {
     200: { description: "更新成功", ...jsonContent(propertySchema) },
+    400: errorResponse("項目どうしの矛盾（売地に建物項目など）", {
+      code: "INCONSISTENT_PROPERTY",
+      message: "売買の種別（saleKind）は、type が sale の物件にだけ指定できます",
+    }),
     401: unauthorizedError(),
     403: forbiddenError("他人の物件への操作"),
     404: errorResponse("物件が存在しない", { code: "NOT_FOUND", message: "物件が見つかりません" }),
