@@ -33,6 +33,27 @@ const saleFieldsSchema = z.object({
   longitude: z.number().min(-180).max(180),
 });
 
+// 更新用: 売買項目はnullを送ると値を消せる（種別の変更や、売地への変更で不要な項目を外すため）
+const saleFields = saleFieldsSchema.shape;
+const saleFieldsUpdateSchema = z.object({
+  saleKind: saleFields.saleKind.nullable(),
+  landArea: saleFields.landArea.nullable(),
+  privateRoadArea: saleFields.privateRoadArea.nullable(),
+  buildingArea: saleFields.buildingArea.nullable(),
+  builtYearMonth: saleFields.builtYearMonth.nullable(),
+  nearestStation: saleFields.nearestStation.nullable(),
+  walkMinutes: saleFields.walkMinutes.nullable(),
+  accessNote: saleFields.accessNote.nullable(),
+  floorCount: saleFields.floorCount.nullable(),
+  floorNumber: saleFields.floorNumber.nullable(),
+  balconyArea: saleFields.balconyArea.nullable(),
+  managementFee: saleFields.managementFee.nullable(),
+  repairReserveFee: saleFields.repairReserveFee.nullable(),
+  managementType: saleFields.managementType.nullable(),
+  latitude: saleFields.latitude.nullable(),
+  longitude: saleFields.longitude.nullable(),
+});
+
 export const propertyListQuerySchema = z.object({
   type: z.enum(["rent", "sale"]).optional(),
   status: z.enum(["draft", "published", "contracted", "closed"]).optional(),
@@ -84,7 +105,7 @@ export const propertyUpdateSchema = z
     address: z.string().min(1),
     status: z.enum(["draft", "published", "contracted", "closed"]),
   })
-  .extend(saleFieldsSchema.shape)
+  .extend(saleFieldsUpdateSchema.shape)
   .partial() // 全フィールドをoptionalに変換するzodの機能
   // ここまで全部通過した後の、検証済み・型が確定したオブジェクトをdataで受け取り、更にチェックする
   // .refine(検証関数, エラー情報)

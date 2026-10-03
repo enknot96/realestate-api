@@ -70,14 +70,16 @@ const NUMERIC_FIELDS: NumericField[] = [
 ];
 
 // numeric列はnumberのままでは渡せないため、指定された項目だけ文字列に変換する
-function withNumericAsString<T extends Partial<Record<NumericField, number>>>(
+// null（更新で値を消す指定）はそのままnullで渡す（String(null)で"null"にしない）
+function withNumericAsString<T extends Partial<Record<NumericField, number | null>>>(
   data: T,
-): Omit<T, NumericField> & Partial<Record<NumericField, string>> {
+): Omit<T, NumericField> & Partial<Record<NumericField, string | null>> {
   const row: Record<string, unknown> = { ...data };
   for (const key of NUMERIC_FIELDS) {
-    if (data[key] !== undefined) row[key] = String(data[key]);
+    const value = data[key];
+    if (value !== undefined) row[key] = value === null ? null : String(value);
   }
-  return row as Omit<T, NumericField> & Partial<Record<NumericField, string>>;
+  return row as Omit<T, NumericField> & Partial<Record<NumericField, string | null>>;
 }
 
 export type PropertyCreateData = SaleFieldsData & {
@@ -91,7 +93,10 @@ export type PropertyCreateData = SaleFieldsData & {
   address: string;
 };
 
-export type PropertyUpdateData = SaleFieldsData & {
+// 更新では売買項目にnullを指定して値を消せる（種別の変更や、売地への変更で不要な項目を外すため）
+type NullableSaleFieldsData = { [K in keyof SaleFieldsData]?: SaleFieldsData[K] | null };
+
+export type PropertyUpdateData = NullableSaleFieldsData & {
   type?: PropertyType;
   title?: string;
   description?: string;

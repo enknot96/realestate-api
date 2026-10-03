@@ -428,6 +428,51 @@ describe("売買物件の項目拡張", () => {
     expect(res.status).toBe(400);
   });
 
+  it("更新でsaleKindをnullにすれば、売買から賃貸に変更できる", async () => {
+    const agent = await createTestAgent();
+    const createRes = await createProperty(agent.accessToken, {
+      type: "sale",
+      saleKind: "used_house",
+    });
+    const created = (await createRes.json()) as any;
+
+    const res = await app.request(`/properties/${created.id}`, {
+      method: "PATCH",
+      headers: authHeaders(agent.accessToken),
+      body: JSON.stringify({ type: "rent", saleKind: null }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.type).toBe("rent");
+    expect(body.saleKind).toBeNull();
+  });
+
+  it("更新で建物の項目をnullにすれば、中古戸建から売地に変更できる（numericも文字列\"null\"にならない）", async () => {
+    const agent = await createTestAgent();
+    const createRes = await createProperty(agent.accessToken, {
+      type: "sale",
+      saleKind: "used_house",
+      landArea: 120.5,
+      buildingArea: 98.5,
+      builtYearMonth: "2010-03",
+    });
+    const created = (await createRes.json()) as any;
+
+    const res = await app.request(`/properties/${created.id}`, {
+      method: "PATCH",
+      headers: authHeaders(agent.accessToken),
+      body: JSON.stringify({ saleKind: "land", buildingArea: null, builtYearMonth: null }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.saleKind).toBe("land");
+    expect(body.buildingArea).toBeNull();
+    expect(body.builtYearMonth).toBeNull();
+    expect(body.landArea).toBe("120.50");
+  });
+
   it("GET /properties?saleKind=used_mansion で絞り込める", async () => {
     const agent = await createTestAgent();
     for (const body of [

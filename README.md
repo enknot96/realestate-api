@@ -159,6 +159,8 @@ Origin検証は、httpOnly Cookieが自動送信される`POST /auth/refresh`・
 2. `saleKind = 'land'`なのに建物・マンション用の項目（`buildingArea`・`builtYearMonth`・`floorCount`・`floorNumber`・`balconyArea`・`managementFee`・`repairReserveFee`・`managementType`）を持つ
 3. `latitude`と`longitude`の片方だけを持つ
 
+更新（`PATCH`）では、売買用の項目に`null`を送ると値を消せる。種別を変えるときは、矛盾する項目を同じリクエストで`null`にする（例: 賃貸に変えるなら`{ "type": "rent", "saleKind": null }`、中古戸建を売地に変えるなら`buildingArea`・`builtYearMonth`を`null`にする）。
+
 「中古マンションなら専有面積と築年月が必須」のような種別ごとの必須チェックは**あえて入れていない**。別作品のAIエージェントが、物件資料の読み取り結果から`POST /properties`で最小限の項目だけの売買物件を登録しており、必須にするとそのデモが壊れるため。資料を作れるだけの項目が揃っているかは、利用する側（CRM）で判定する。
 
 ### 座標の生成（`pnpm geocode`）
