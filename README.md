@@ -13,6 +13,8 @@
 - [APIドキュメント（Swagger UI）](#apiドキュメントswagger-ui)
 - [主な設計判断・意図的な簡略化（既知の制約）](#主な設計判断意図的な簡略化既知の制約)
 - [AIエージェント（別作品）からの利用](#aiエージェント別作品からの利用)
+- [売買物件の項目と位置情報](#売買物件の項目と位置情報)
+- [本番への反映手順（ユーザーが行う）](#本番への反映手順ユーザーが行う)
 - [テスト](#テスト)
 - [セットアップ](#セットアップ)
 - [デプロイ](#デプロイ)
@@ -123,6 +125,66 @@ Origin検証は、httpOnly Cookieが自動送信される`POST /auth/refresh`・
 本APIは、別作品のAIエージェント（Next.js + Vercel AI SDK）が「ツール」として呼び出す外部サービスでもある。エージェントは物件検索→詳細確認→空き枠確認→（ユーザー承認を挟んで）内見予約、という多段フローで本APIを叩く。
 
 この利用要件に応じて、検索パラメータの拡張（`layout`・`keyword`）、内見空き枠の公開エンドポイント（`GET /properties/:id/availability`）、CSRF適用範囲の整理（Originヘッダー無しのサーバー間通信を安全に通す、前述）を追加した。書き込み系の`POST /inquiries/:id/viewings`は要認証で、デモ用エージェントアカウントのJWTをエージェント側サーバー内でのみ保持する（クライアントには出さない）。
+
+## 売買物件の項目と位置情報
+
+> 位置情報の出典: 位置参照情報ダウンロードサービス（国土交通省）（https://nlftp.mlit.go.jp/isj/ ）をもとに作成
+
+マイソク（物件資料）作成など、別システムが物件の「事実」を取り込めるよう、`properties`に売買物件向けの項目を追加している（**全て任意**。既存の登録方法はそのまま使える）。取引態様・有効期限など取引条件や配布物ごとの情報は、このAPIでは持たない。
+
+### 種別（`saleKind`）ごとに使う項目
+
+`saleKind`は`type = 'sale'`のときだけ指定できる（`land`=売地 / `new_house`=新築戸建 / `used_house`=中古戸建 / `used_mansion`=中古マンション）。
+
+| 項目 | 売地 | 新築・中古戸建 | 中古マンション |
+| --- | :-: | :-: | :-: |
+| `area`（専有面積） | - | - | ○ |
+| `landArea`（土地面積）・`privateRoadArea`（私道負担面積。無ければ`0`） | ○ | ○ | - |
+| `buildingArea`（建物面積） | - | ○ | - |
+| `builtYearMonth`（建築年月 `YYYY-MM`） | - | ○ | ○ |
+| `layout`（間取り） | - | ○ | ○ |
+| `floorCount`・`floorNumber`・`balconyArea`・`managementFee`・`repairReserveFee`・`managementType` | - | - | ○ |
+| `nearestStation`（駅名。「駅」は付けない）・`walkMinutes`・`accessNote`（バス便など交通の補足） | ○ | ○ | ○ |
+| `latitude`・`longitude`（世界測地系） | ○ | ○ | ○ |
+
+- `area`は従来どおり**専有面積**の意味（賃貸とマンションが使う）。土地・戸建では`null`にし、戸建の延床は`buildingArea`に入れる
+- numeric列（面積・緯度経度）はレスポンスでは文字列で返る（例: `"65.50"`）
+- 一覧は`GET /properties?saleKind=used_mansion`のように絞り込める
+
+### 整合性チェック（種別ごとの必須は強制しない）
+
+次の**矛盾だけ**を`400`（`INCONSISTENT_PROPERTY`）で弾く。更新時は「既存の行に更新内容を重ねた結果」で判定する。
+
+1. `saleKind`を持つのに`type`が`sale`でない
+2. `saleKind = 'land'`なのに建物・マンション用の項目（`buildingArea`・`builtYearMonth`・`floorCount`・`floorNumber`・`balconyArea`・`managementFee`・`repairReserveFee`・`managementType`）を持つ
+3. `latitude`と`longitude`の片方だけを持つ
+
+「中古マンションなら専有面積と築年月が必須」のような種別ごとの必須チェックは**あえて入れていない**。別作品のAIエージェントが、物件資料の読み取り結果から`POST /properties`で最小限の項目だけの売買物件を登録しており、必須にするとそのデモが壊れるため。資料を作れるだけの項目が揃っているかは、利用する側（CRM）で判定する。
+
+### 座標の生成（`pnpm geocode`）
+
+シード物件の住所を、国土交通省の位置参照情報（街区レベル）で緯度経度に変換し、`scripts/data/coordinates.json`（キー=シードに書いた住所）に書き出す。シード実行時にこのJSONを読んで座標を入れる（JSONが無くてもシードは失敗せず、座標は全て`null`になる）。
+
+1. [位置参照情報ダウンロードサービス](https://nlftp.mlit.go.jp/isj/)から、東京都・大阪府・京都府・兵庫県の**街区レベル**CSV（最新年度）をダウンロードし、1つのディレクトリに置く（zipは展開する。CSVはShift_JISのまま使う。リポジトリにはコミットしない）
+2. `pnpm geocode --dir ~/Downloads/isj`
+   - ディレクトリ配下の`*.csv`を再帰的に全て読む。DBには触れない
+   - 標準出力に成功／失敗の件数と、**突き合わせできなかった住所の一覧**を出す（終了コードは0）
+   - 突き合わせは「都道府県+市区町村+町丁目（丁目は漢数字）+街区符号」。近くの街区で推測して埋めることはせず、一致しなかった住所には座標を入れない
+   - `--debug`を付けると、CSVの市区町村名の書き方（「大阪市北区」か「北区」か）と、失敗した住所の突き合わせキーを表示する
+3. 出力された`coordinates.json`を確認してコミットする
+
+## 本番への反映手順（ユーザーが行う）
+
+```bash
+# 1. スキーマ反映（売買用の列・sale_kind型・インデックスを追加）
+npx drizzle-kit push
+
+# 2. シード再投入（注意: 全テーブルをTRUNCATEして作り直す。問い合わせ・内見も作り直される）
+SEED_AGENT_PASSWORD=<パスワード> pnpm seed
+
+# 3. 物件画像のアップロード（images/{物件ID}.jpg。追加分は images/56.jpg〜70.jpg）
+pnpm upload-images
+```
 
 ## テスト
 
